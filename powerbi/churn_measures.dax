@@ -1,0 +1,45 @@
+-- Measures matched to your repo: table = customers (from data/customers.csv)
+-- Columns: customer_id, signup_date, age, region, product_tier, contract_type, payment_method,
+--          tenure_months, monthly_spend, spend_3m_ago, support_tickets, last_login_days, risk_score, churned
+
+Total Customers = COUNTROWS ( customers )
+Churned Customers = CALCULATE ( COUNTROWS ( customers ), customers[churned] = 1 )
+Churn Rate = DIVIDE ( [Churned Customers], [Total Customers] )          -- format as 0.0%
+Overall Churn Rate = CALCULATE ( [Churn Rate], ALL ( customers ) )       -- reference line
+Monthly Revenue Lost = CALCULATE ( SUM ( customers[monthly_spend] ), customers[churned] = 1 )
+
+-- HIGH RISK: your CSV risk_score maxes at 58, so the old ">= 60" rule returns 0 customers.
+-- Choose ONE rule, document it on the page, and use it everywhere:
+-- Option A (from your own findings): active customer, 3+ tickets AND 30+ days inactive
+High Risk Customers =
+CALCULATE ( COUNTROWS ( customers ), customers[churned] = 0,
+            customers[support_tickets] >= 3, customers[last_login_days] > 30 )
+
+Monthly Revenue at Risk =
+CALCULATE ( SUM ( customers[monthly_spend] ), customers[churned] = 0,
+            customers[support_tickets] >= 3, customers[last_login_days] > 30 )
+
+-- Display text
+Churn Subtitle = FORMAT ( [Churned Customers], "#,0" ) & " of " & FORMAT ( [Total Customers], "#,0" )
+Revenue Lost Text = "LKR " & FORMAT ( [Monthly Revenue Lost] / 1000, "#,0" ) & "K"
+Revenue at Risk Text = "LKR " & FORMAT ( [Monthly Revenue at Risk] / 1000, "#,0" ) & "K"
+
+-- Support ticket multiple (verified: about 2.8x)
+Churn Rate 0-2 Tickets = CALCULATE ( [Churn Rate], ALL ( customers[support_tickets] ), customers[support_tickets] <= 2 )
+Churn Rate 3+ Tickets  = CALCULATE ( [Churn Rate], ALL ( customers[support_tickets] ), customers[support_tickets] >= 3 )
+Ticket Multiple = DIVIDE ( [Churn Rate 3+ Tickets], [Churn Rate 0-2 Tickets] )
+
+-- Calculated columns (Table view > New column)
+Tenure Group =
+SWITCH ( TRUE (), customers[tenure_months] <= 6, "New (0-6m)", customers[tenure_months] <= 12, "Growing (7-12m)",
+         customers[tenure_months] <= 24, "Established (13-24m)", customers[tenure_months] <= 36, "Loyal (25-36m)", "Champion (36m+)" )
+Tenure Sort = SWITCH ( TRUE (), customers[tenure_months] <= 6, 1, customers[tenure_months] <= 12, 2,
+                       customers[tenure_months] <= 24, 3, customers[tenure_months] <= 36, 4, 5 )
+Inactivity Band =
+SWITCH ( TRUE (), customers[last_login_days] <= 7, "0-7 days", customers[last_login_days] <= 14, "8-14 days",
+         customers[last_login_days] <= 21, "15-21 days", customers[last_login_days] <= 30, "22-30 days",
+         customers[last_login_days] <= 45, "31-45 days", customers[last_login_days] <= 60, "46-60 days", "60+ days" )
+Inactivity Sort = SWITCH ( TRUE (), customers[last_login_days] <= 7, 1, customers[last_login_days] <= 14, 2,
+                           customers[last_login_days] <= 21, 3, customers[last_login_days] <= 30, 4,
+                           customers[last_login_days] <= 45, 5, customers[last_login_days] <= 60, 6, 7 )
+-- Then: select Tenure Group > Column tools > Sort by column > Tenure Sort (same for Inactivity Band)
