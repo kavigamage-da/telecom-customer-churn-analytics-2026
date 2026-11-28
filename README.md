@@ -16,9 +16,9 @@
 
 ![Churn Drivers](screenshots/dashboard_2_churn_drivers.png)
 
-![Customer Risk](screenshots/page3_customer_risk.png)
+![Customer Risk](screenshots/dashboard_3_customer_risk.png)
 
-**Business Analysis – Prioritisation**
+**Business Analysis – Impact and Effort Matrix**
 
 ![Impact Effort Matrix](screenshots/impact_effort_matrix.png)
 
